@@ -21,7 +21,7 @@ const docFiles = ['mcp-documentation.json', 'journey-builder-examples.json', 'so
 docFiles.forEach(file => {
   try {
     // Fix: Load from docs folder instead of root
-    const filePath = join(__dirname, 'docs', file);
+    const docPath = join(__dirname, 'docs', file); // Add 'docs' to path
     const content = JSON.parse(readFileSync(filePath, 'utf8'));
     const key = file.replace('.json', '').replace(/-/g, '_');
     documentation[key] = content;

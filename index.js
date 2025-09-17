@@ -20,7 +20,8 @@ const docFiles = ['mcp-documentation.json', 'journey-builder-examples.json', 'so
 
 docFiles.forEach(file => {
   try {
-    const filePath = join(__dirname, file);
+    // Fix: Load from docs folder instead of root
+    const filePath = join(__dirname, 'docs', file);
     const content = JSON.parse(readFileSync(filePath, 'utf8'));
     const key = file.replace('.json', '').replace(/-/g, '_');
     documentation[key] = content;
@@ -40,6 +41,15 @@ class MarketingCloudServer {
     'get_contacts', 'create_contact',
     'list_data_extensions'
   ];
+  
+  getEmailFilter(type = 'all') {
+  const filters = {
+    'all': 'assetType.id in (207,208,209)',
+    'html': 'assetType.name eq \'htmlemail\'',
+    'template': 'assetType.name eq \'templatebasedemail\''
+  };
+  return filters[type] || filters['all'];
+}
   
   // Operations better suited for SOAP
   const soapPreferred = [
@@ -532,14 +542,13 @@ class MarketingCloudServer {
 </s:Envelope>`;
   }
 
-  buildCreateBody(args) {
-    if (args.objectType === 'DataExtension') {
-      // Special handling for DataExtension creation
-      const de = args.objects && args.objects[0] || {};
-      let fieldsXml = '';
-      
-      if (de.fields && de.fields.length > 0) {
-        fieldsXml = de.fields.map(field => `
+ buildCreateBody(args) {
+  if (args.objectType === 'DataExtension') {
+    const de = args.objects && args.objects[0] || {};
+    let fieldsXml = '';
+    
+    if (de.fields && de.fields.length > 0) {
+      fieldsXml = de.fields.map(field => `
       <Fields>
         <Field>
           <Name>${field.name}</Name>
@@ -549,9 +558,9 @@ class MarketingCloudServer {
           ${field.isRequired ? `<IsRequired>true</IsRequired>` : ''}
         </Field>
       </Fields>`).join('');
-      }
+    }
 
-      return `
+    return `
     <CreateRequest xmlns="http://exacttarget.com/wsdl/partnerAPI">
       <Objects xsi:type="DataExtension">
         <CustomerKey>${de.customerKey || de.name}</CustomerKey>
@@ -569,7 +578,7 @@ class MarketingCloudServer {
         ${fieldsXml}
       </Objects>
     </CreateRequest>`;
-    }
+  }
     
     // Generic create for other object types
     const obj = args.objects && args.objects[0] || {};

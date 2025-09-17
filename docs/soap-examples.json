@@ -1,0 +1,406 @@
+{
+  "soap_operations": {
+    "Create": {
+      "description": "Create new objects in Marketing Cloud",
+      "examples": {
+        "DataExtension": {
+          "description": "Create a new Data Extension",
+          "request": {
+            "action": "Create",
+            "objectType": "DataExtension",
+            "objects": [{
+              "name": "TestDE",
+              "customerKey": "TestDE",
+              "description": "Test Data Extension",
+              "fields": [
+                {
+                  "name": "EmailAddress",
+                  "fieldType": "EmailAddress",
+                  "maxLength": 254,
+                  "isPrimaryKey": true,
+                  "isRequired": true
+                },
+                {
+                  "name": "FirstName",
+                  "fieldType": "Text",
+                  "maxLength": 100,
+                  "isRequired": false,
+                  "isPrimaryKey": false
+                },
+                {
+                  "name": "LastName",
+                  "fieldType": "Text",
+                  "maxLength": 100,
+                  "isRequired": false,
+                  "isPrimaryKey": false
+                }
+              ],
+              "isSendable": true,
+              "sendableDataExtensionField": "EmailAddress",
+              "sendableSubscriberField": "_SubscriberKey"
+            }]
+          },
+          "notes": [
+            "sendableSubscriberField can be '_SubscriberKey' or 'Email Address'",
+            "fieldType options: Text, Number, Date, Boolean, EmailAddress, Phone, Decimal, Locale"
+          ]
+        },
+        "Folder": {
+          "description": "Create a folder for organizing content",
+          "request": {
+            "action": "Create",
+            "objectType": "DataFolder",
+            "objects": [{
+              "name": "My Folder",
+              "customerKey": "my-folder-key",
+              "description": "Folder for organizing data extensions",
+              "contentType": "dataextension",
+              "parentFolder": {
+                "id": 0
+              }
+            }]
+          },
+          "contentTypes": ["dataextension", "email", "image", "document", "portfolio"]
+        },
+        "List": {
+          "description": "Create a subscriber list",
+          "request": {
+            "action": "Create",
+            "objectType": "List",
+            "objects": [{
+              "ListName": "My List",
+              "Description": "Test subscriber list",
+              "Type": "Private"
+            }]
+          }
+        }
+      }
+    },
+    "Retrieve": {
+      "description": "Retrieve objects from Marketing Cloud",
+      "examples": {
+        "DataExtension": {
+          "description": "Retrieve Data Extensions",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "DataExtension",
+            "properties": ["Name", "CustomerKey", "ObjectID", "IsSendable", "SendableDataExtensionField", "SendableSubscriberField"],
+            "filter": {
+              "property": "Name",
+              "operator": "equals",
+              "value": "TestDE"
+            }
+          },
+          "operators": ["equals", "notEquals", "greaterThan", "lessThan", "like", "isNull", "isNotNull"],
+          "common_properties": [
+            "Name",
+            "CustomerKey",
+            "ObjectID",
+            "CategoryID",
+            "IsSendable",
+            "IsTestable",
+            "CreatedDate",
+            "ModifiedDate",
+            "Description",
+            "RowBasedRetention",
+            "ResetRetentionPeriodOnImport",
+            "DeleteAtEndOfRetentionPeriod",
+            "RetainUntil"
+          ]
+        },
+        "DataExtensionField": {
+          "description": "Retrieve fields of a Data Extension",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "DataExtensionField",
+            "properties": ["Name", "FieldType", "MaxLength", "IsPrimaryKey", "IsRequired"],
+            "filter": {
+              "property": "DataExtension.CustomerKey",
+              "operator": "equals",
+              "value": "TestDE"
+            }
+          }
+        },
+        "Email": {
+          "description": "Retrieve emails",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "Email",
+            "properties": ["ID", "Name", "Subject", "Status", "CreatedDate", "ModifiedDate"],
+            "filter": {
+              "property": "Status",
+              "operator": "equals",
+              "value": "Active"
+            }
+          }
+        },
+        "Subscriber": {
+          "description": "Retrieve subscribers",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "Subscriber",
+            "properties": ["EmailAddress", "SubscriberKey", "Status", "CreatedDate"],
+            "filter": {
+              "property": "Status",
+              "operator": "equals",
+              "value": "Active"
+            }
+          }
+        },
+        "Send": {
+          "description": "Retrieve send information",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "Send",
+            "properties": ["ID", "EmailName", "Status", "SentDate", "NumberSent", "NumberDelivered"],
+            "filter": {
+              "property": "SentDate",
+              "operator": "greaterThan",
+              "value": "2025-09-01T00:00:00"
+            }
+          }
+        },
+        "DataFolder": {
+          "description": "Retrieve folder structure",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "DataFolder",
+            "properties": ["ID", "Name", "CustomerKey", "ContentType", "ParentFolder.ID", "ParentFolder.Name"],
+            "filter": {
+              "property": "ContentType",
+              "operator": "equals",
+              "value": "dataextension"
+            }
+          }
+        },
+        "Automation": {
+          "description": "Retrieve automations",
+          "request": {
+            "action": "Retrieve",
+            "objectType": "Automation",
+            "properties": ["Name", "CustomerKey", "Status", "ScheduledTime"],
+            "filter": {
+              "property": "Status",
+              "operator": "equals",
+              "value": "Active"
+            }
+          }
+        }
+      }
+    },
+    "Update": {
+      "description": "Update existing objects",
+      "examples": {
+        "DataExtension": {
+          "description": "Update Data Extension properties",
+          "request": {
+            "action": "Update",
+            "objectType": "DataExtension",
+            "objects": [{
+              "CustomerKey": "TestDE",
+              "Name": "Updated Test DE",
+              "Description": "Updated description"
+            }]
+          }
+        },
+        "Subscriber": {
+          "description": "Update subscriber attributes",
+          "request": {
+            "action": "Update",
+            "objectType": "Subscriber",
+            "objects": [{
+              "EmailAddress": "test@example.com",
+              "SubscriberKey": "test123",
+              "Attributes": [
+                {
+                  "Name": "FirstName",
+                  "Value": "John"
+                },
+                {
+                  "Name": "LastName",
+                  "Value": "Doe"
+                }
+              ]
+            }]
+          }
+        }
+      }
+    },
+    "Delete": {
+      "description": "Delete objects from Marketing Cloud",
+      "examples": {
+        "DataExtension": {
+          "description": "Delete a Data Extension",
+          "request": {
+            "action": "Delete",
+            "objectType": "DataExtension",
+            "objects": [{
+              "CustomerKey": "TestDE"
+            }]
+          }
+        },
+        "DataExtensionRow": {
+          "description": "Delete rows from a Data Extension",
+          "request": {
+            "action": "Delete",
+            "objectType": "DataExtensionObject[TestDE]",
+            "objects": [{
+              "EmailAddress": "test@example.com"
+            }]
+          }
+        }
+      }
+    },
+    "Perform": {
+      "description": "Perform actions on objects",
+      "examples": {
+        "Send": {
+          "description": "Perform a send",
+          "request": {
+            "action": "Perform",
+            "objectType": "Send",
+            "objects": [{
+              "EmailID": 12345,
+              "ListID": 67890
+            }]
+          }
+        },
+        "Automation": {
+          "description": "Start an automation",
+          "request": {
+            "action": "Perform",
+            "objectType": "Automation",
+            "objects": [{
+              "CustomerKey": "my-automation-key",
+              "Action": "Start"
+            }]
+          }
+        }
+      }
+    }
+  },
+  "object_types": {
+    "core_objects": [
+      "DataExtension",
+      "DataExtensionField",
+      "DataExtensionObject",
+      "DataFolder",
+      "Email",
+      "Subscriber",
+      "List",
+      "Send",
+      "TriggeredSend",
+      "Automation",
+      "ImportDefinition",
+      "QueryDefinition"
+    ],
+    "tracking_objects": [
+      "OpenEvent",
+      "ClickEvent",
+      "BounceEvent",
+      "UnsubEvent",
+      "SentEvent"
+    ],
+    "journey_objects": [
+      "Interaction",
+      "InteractionDefinition",
+      "Event",
+      "EventDefinition"
+    ]
+  },
+  "field_types": {
+    "DataExtension": {
+      "Text": {
+        "maxLength": 4000,
+        "description": "Text field up to 4000 characters"
+      },
+      "Number": {
+        "description": "Whole numbers"
+      },
+      "Decimal": {
+        "precision": 18,
+        "scale": 5,
+        "description": "Decimal numbers"
+      },
+      "Date": {
+        "description": "Date only"
+      },
+      "DateTime": {
+        "description": "Date and time"
+      },
+      "Boolean": {
+        "description": "True/False values"
+      },
+      "EmailAddress": {
+        "maxLength": 254,
+        "description": "Email address field"
+      },
+      "Phone": {
+        "description": "Phone number field"
+      },
+      "Locale": {
+        "description": "Locale/language preference"
+      }
+    }
+  },
+  "common_filters": {
+    "date_filters": {
+      "today": {
+        "property": "CreatedDate",
+        "operator": "equals",
+        "value": "TODAY"
+      },
+      "last_7_days": {
+        "property": "CreatedDate",
+        "operator": "greaterThan",
+        "value": "LAST_7_DAYS"
+      },
+      "this_month": {
+        "property": "CreatedDate",
+        "operator": "greaterThan",
+        "value": "THIS_MONTH"
+      }
+    },
+    "status_filters": {
+      "active": {
+        "property": "Status",
+        "operator": "equals",
+        "value": "Active"
+      },
+      "paused": {
+        "property": "Status",
+        "operator": "equals",
+        "value": "Paused"
+      }
+    }
+  },
+  "best_practices": {
+    "naming": {
+      "use_customer_keys": "Always provide customerKey for objects",
+      "consistent_naming": "Use consistent naming conventions",
+      "avoid_spaces": "Use underscores or hyphens instead of spaces in keys"
+    },
+    "performance": {
+      "batch_size": "Process in batches of 2500 for data operations",
+      "use_filters": "Always use filters to limit result sets",
+      "select_fields": "Only retrieve needed properties"
+    },
+    "data_extensions": {
+      "primary_keys": "Always define at least one primary key",
+      "field_types": "Choose appropriate field types for data",
+      "sendable": "Only make sendable if needed for sending"
+    }
+  },
+  "troubleshooting": {
+    "common_errors": {
+      "310007": {
+        "message": "SendableCustomObjectField is invalid",
+        "solution": "Check sendableSubscriberField value - use '_SubscriberKey' or 'Email Address'"
+      },
+      "10005": {
+        "message": "A valid categoryId must be provided",
+        "solution": "Provide a valid folder ID or create in root folder"
+      }
+    }
+  }
+}

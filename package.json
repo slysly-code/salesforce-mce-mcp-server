@@ -1,0 +1,15 @@
+﻿{
+  "name": "salesforce-mce-mcp-fixed",
+  "version": "1.0.0",
+  "description": "Fixed Salesforce Marketing Cloud MCP Server",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0",
+    "axios": "^1.6.0",
+    "xml2js": "^0.6.2"
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "overview": {
+    "name": "Salesforce Marketing Cloud Engagement MCP Server",
+    "version": "1.0.0",
+    "description": "MCP server for interacting with Salesforce Marketing Cloud via REST and SOAP APIs",
+    "author": "Community Edition - Enhanced with Examples"
+  },
+  "tools": {
+    "mce_v1_health": {
+      "description": "Health check tool - Echoes input and confirms server readiness",
+      "input": {
+        "ping": "string (optional) - Echo payload"
+      },
+      "example": {
+        "ping": "Testing connection"
+      }
+    },
+    "mce_v1_rest_request": {
+      "description": "Generic REST request for Marketing Cloud",
+      "input": {
+        "method": "GET | POST | PUT | PATCH | DELETE",
+        "path": "API endpoint path (e.g., /asset/v1/content/assets)",
+        "query": "Query parameters object (optional)",
+        "headers": "Additional headers object (optional)",
+        "body": "Request body object or string (optional)",
+        "businessUnitId": "MID for scoped operations (optional)"
+      },
+      "examples": {
+        "list_emails": {
+          "method": "GET",
+          "path": "/asset/v1/content/assets",
+          "query": {
+            "$filter": "assetType.name eq 'htmlemail'",
+            "page": 1,
+            "pageSize": 50
+          }
+        },
+        "create_email": {
+          "method": "POST",
+          "path": "/asset/v1/content/assets",
+          "body": {
+            "name": "My Email",
+            "assetType": {
+              "id": 208,
+              "name": "htmlemail"
+            },
+            "views": {
+              "html": {
+                "content": "<html>...</html>"
+              },
+              "subjectline": {
+                "content": "Subject Line"
+              }
+            }
+          }
+        }
+      }
+    },
+    "mce_v1_soap_request": {
+      "description": "Generic SOAP request for Marketing Cloud",
+      "input": {
+        "action": "Create | Retrieve | Update | Delete | Perform | Configure",
+        "objectType": "Marketing Cloud object type (e.g., DataExtension)",
+        "properties": "Array of properties to retrieve (for Retrieve)",
+        "filter": "Filter criteria object (for Retrieve)",
+        "objects": "Array of objects to create/update/delete",
+        "options": "SOAP options object (optional)",
+        "businessUnitId": "MID for scoped operations (optional)"
+      },
+      "note": "See soap-examples.json for detailed examples"
+    },
+    "mce_v1_documentation": {
+      "description": "Returns this documentation",
+      "input": "None required"
+    }
+  },
+  "api_endpoints": {
+    "rest": {
+      "base_url": "{{rest_instance_url}}",
+      "authentication": "Bearer token via OAuth 2.0",
+      "common_endpoints": {
+        "content": {
+          "assets": "/asset/v1/content/assets",
+          "categories": "/asset/v1/content/categories"
+        },
+        "data": {
+          "data_extensions": "/data/v1/customobjects",
+          "data_rows": "/data/v1/customobjectdata"
+        },
+        "messaging": {
+          "emails": "/messaging/v1/email/messages",
+          "sms": "/messaging/v1/sms/messages"
+        },
+        "journeys": {
+          "interactions": "/interaction/v1/interactions",
+          "events": "/interaction/v1/eventDefinitions"
+        },
+        "contacts": {
+          "contacts": "/contacts/v1/contacts",
+          "attributes": "/contacts/v1/attributes"
+        },
+        "platform": {
+          "token_context": "/platform/v1/tokenContext",
+          "endpoints": "/platform/v1/endpoints"
+        }
+      }
+    },
+    "soap": {
+      "endpoint": "{{soap_instance_url}}Service.asmx",
+      "authentication": "FuelSDK token in header",
+      "wsdl": "https://webservice.exacttarget.com/etframework.wsdl"
+    }
+  },
+  "configuration": {
+    "required_env_variables": {
+      "MCE_SUBDOMAIN": "Your Marketing Cloud subdomain",
+      "MCE_CLIENT_ID": "Installed package Client ID",
+      "MCE_CLIENT_SECRET": "Installed package Client Secret",
+      "MCE_DEFAULT_MID": "Default Business Unit ID (optional)"
+    },
+    "installed_package_permissions": [
+      "Email: Read, Write",
+      "Web: Read, Write",
+      "Documents and Images: Read, Write",
+      "Content Builder: Read, Write",
+      "Automation: Read, Write, Execute",
+      "Journeys: Read, Write, Execute",
+      "List and Subscribers: Read, Write",
+      "Data Extensions: Read, Write",
+      "Tracking Events: Read",
+      "Contacts: Read, Write"
+    ]
+  },
+  "external_documentation": {
+    "official_docs": {
+      "REST_API": "https://developer.salesforce.com/docs/marketing/marketing-cloud/references/mc_rest_api",
+      "SOAP_API": "https://developer.salesforce.com/docs/marketing/marketing-cloud/references/mc_soap_api",
+      "Journey_Builder": "https://developer.salesforce.com/docs/marketing/marketing-cloud/guide/journey-builder-development",
+      "Content_Builder": "https://developer.salesforce.com/docs/marketing/marketing-cloud/guide/content-builder-development",
+      "AMPscript": "https://developer.salesforce.com/docs/marketing/marketing-cloud-ampscript/overview",
+      "SSJS": "https://developer.salesforce.com/docs/marketing/marketing-cloud/guide/ssjs_serverSideJavaScript"
+    }
+  },
+  "additional_resources": {
+    "journey_examples": "See journey-builder-examples.json for journey templates",
+    "soap_examples": "See soap-examples.json for SOAP operation examples"
+  }
+}

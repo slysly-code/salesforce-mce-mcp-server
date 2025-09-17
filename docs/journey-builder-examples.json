@@ -1,0 +1,563 @@
+{
+  "journey_templates": {
+    "scheduled_campaign": {
+      "name": "Scheduled Campaign with Engagement Tracking",
+      "description": "Schedule a journey to run at a specific time, filter audience, send emails, and track engagement",
+      "requirements": [
+        "Data Extension ID (must be linked to Contact Model for filters)",
+        "Email Asset IDs",
+        "Schedule Date/Time",
+        "Filter Criteria",
+        "Engagement Tracking URLs"
+      ],
+      "structure": {
+        "event_definition": {
+          "type": "EmailAudience",
+          "schedule": {
+            "startDateTime": "2025-09-21T09:00:00",
+            "timeZone": "W. Europe Standard Time",
+            "occurrences": 1,
+            "endType": "Occurrences",
+            "frequency": "Daily",
+            "recurrencePattern": "Interval",
+            "interval": 1
+          },
+          "arguments": {
+            "useHighWatermark": true,
+            "resetHighWatermark": true
+          }
+        },
+        "journey": {
+          "workflowApiVersion": 1.0,
+          "entryMode": "SingleEntryAcrossAllVersions",
+          "definitionType": "Multistep"
+        }
+      }
+    },
+    "recurring_filtered_campaign": {
+      "name": "Daily Recurring with Audience Filter",
+      "description": "Runs daily, adds only new DE entries, filters by multiple conditions",
+      "key_learnings": [
+        "Data Extension MUST be linked to Contact Model for filter fields to work",
+        "useHighWatermark: true ensures only new records are processed",
+        "Holdback audiences NOT available for recurring journeys",
+        "entryMode: OnceAndDone prevents re-entry"
+      ],
+      "event_definition": {
+        "type": "EmailAudience",
+        "schedule": {
+          "startDateTime": "2025-09-21T00:00:00",
+          "endDateTime": "2075-09-21T00:00:00",
+          "timeZone": "W. Europe Standard Time",
+          "occurrences": 18263,
+          "endType": "EndDate",
+          "frequency": "Daily",
+          "interval": 1
+        },
+        "filterDefinitionTemplate": "<FilterDefinition><ConditionSet Operator=\"AND\" ConditionSetName=\"Individual Filter Grouping\"><Condition Key=\"LLM_OLE.Gender\" Operator=\"IsNotNull\" UiMetaData=\"{&quot;groupToSetRelationshipId&quot;:&quot;ed937c5d-a693-f011-a5d3-5cba2c756f70&quot;}\"><Value><![CDATA[]]></Value></Condition><Condition Key=\"LLM_OLE.Age\" Operator=\"GreaterThan\" UiMetaData=\"{&quot;groupToSetRelationshipId&quot;:&quot;ed937c5d-a693-f011-a5d3-5cba2c756f70&quot;}\"><Value><![CDATA[18]]></Value></Condition></ConditionSet></FilterDefinition>",
+        "arguments": {
+          "useHighWatermark": true,
+          "resetHighWatermark": true
+        },
+        "metaData": {
+          "scheduleFlowMode": "recurring"
+        }
+      }
+    }
+  },
+  "activity_types": {
+    "MULTICRITERIADECISION": {
+      "description": "Decision split based on contact/journey data",
+      "important_note": "Data Extension fields MUST be linked to Contact Model to be available",
+      "example": {
+        "key": "DECISION-1",
+        "type": "MULTICRITERIADECISION",
+        "name": "Gender Check",
+        "outcomes": [
+          {
+            "key": "default_path_1",
+            "next": "NEXT-ACTIVITY",
+            "metaData": {
+              "label": "Male",
+              "criteriaDescription": "Gender equal M"
+            }
+          },
+          {
+            "key": "path_2",
+            "metaData": {
+              "label": "Female",
+              "criteriaDescription": "Gender equal F"
+            }
+          },
+          {
+            "key": "remainder_path",
+            "metaData": {
+              "label": "Remainder"
+            }
+          }
+        ],
+        "configurationArguments": {
+          "criteria": {
+            "default_path_1": "<FilterDefinition><ConditionSet Operator=\"AND\"><Condition Key=\"Event.DEAudience-xxx.Gender\" Operator=\"Equal\"><Value><![CDATA[M]]></Value></Condition></ConditionSet></FilterDefinition>",
+            "path_2": "<FilterDefinition><ConditionSet Operator=\"AND\"><Condition Key=\"Event.DEAudience-xxx.Gender\" Operator=\"Equal\"><Value><![CDATA[F]]></Value></Condition></ConditionSet></FilterDefinition>"
+          },
+          "schemaVersionId": "252"
+        }
+      },
+      "filter_operators": {
+        "Equal": "Exact match",
+        "NotEqual": "Not equal to",
+        "GreaterThan": "Greater than (numbers, dates)",
+        "LessThan": "Less than (numbers, dates)",
+        "GreaterThanOrEqual": "Greater than or equal",
+        "LessThanOrEqual": "Less than or equal",
+        "IsNotNull": "Field has a value (use empty CDATA)",
+        "IsNull": "Field is empty",
+        "Between": "Between two values",
+        "In": "In a list of values",
+        "Like": "Contains text (with wildcards)"
+      },
+      "filter_xml_structure": {
+        "single_condition": "<FilterDefinition><ConditionSet Operator=\"AND\"><Condition Key=\"DE.FieldName\" Operator=\"Equal\"><Value><![CDATA[value]]></Value></Condition></ConditionSet></FilterDefinition>",
+        "multiple_conditions_and": "<FilterDefinition><ConditionSet Operator=\"AND\"><Condition Key=\"DE.Field1\" Operator=\"Equal\"><Value><![CDATA[value1]]></Value></Condition><Condition Key=\"DE.Field2\" Operator=\"GreaterThan\"><Value><![CDATA[value2]]></Value></Condition></ConditionSet></FilterDefinition>",
+        "multiple_conditions_or": "<FilterDefinition><ConditionSet Operator=\"OR\"><Condition Key=\"DE.Field1\" Operator=\"Equal\"><Value><![CDATA[value1]]></Value></Condition><Condition Key=\"DE.Field2\" Operator=\"Equal\"><Value><![CDATA[value2]]></Value></Condition></ConditionSet></FilterDefinition>",
+        "is_not_null": "<Condition Key=\"DE.Field\" Operator=\"IsNotNull\"><Value><![CDATA[]]></Value></Condition>"
+      }
+    },
+    "ABNTEST": {
+      "description": "Path Optimizer - A/B/n testing with automatic winner selection",
+      "important_notes": [
+        "Holdback percentage ONLY available for 'run once' journeys",
+        "For recurring journeys, holdBackPercentage must be 0",
+        "Creates a 'capsule' that wraps all activities within the test",
+        "Must end with ABNTESTSTOP activity"
+      ],
+      "example": {
+        "key": "ABNTEST-1",
+        "type": "ABNTEST",
+        "name": "Path Optimizer",
+        "outcomes": [
+          {
+            "key": "path1",
+            "next": "EMAIL-A",
+            "arguments": {
+              "percentage": 50,
+              "branchResult": "branchResult-1"
+            },
+            "metaData": {
+              "label": "50%",
+              "pathName": "Path 1"
+            }
+          },
+          {
+            "key": "path2",
+            "next": "EMAIL-B",
+            "arguments": {
+              "percentage": 50,
+              "branchResult": "branchResult-2"
+            },
+            "metaData": {
+              "label": "50%",
+              "pathName": "Path 2"
+            }
+          }
+        ],
+        "configurationArguments": {
+          "holdBackPercentage": 0,
+          "winnerEvaluationType": "Engagement",
+          "engagementPeriod": 3,
+          "engagementPeriodUnits": "Days",
+          "engagementWinnerMetric": "Clicks"
+        },
+        "metaData": {
+          "capsule": {
+            "id": "CAPSULE-1",
+            "startId": "ABNTEST-1",
+            "endId": "ABNTESTSTOP-1"
+          }
+        }
+      },
+      "winner_metrics": ["Opens", "Clicks", "UnsubscribeRate", "ConversionRate"],
+      "evaluation_types": ["Engagement", "Conversion"]
+    },
+    "ABNTESTSTOP": {
+      "description": "Marks the end of a Path Optimizer test",
+      "important_note": "All paths must converge here",
+      "example": {
+        "key": "ABNTESTSTOP-1",
+        "type": "ABNTESTSTOP",
+        "configurationArguments": {
+          "winnerEvaluationType": "Engagement",
+          "engagementPeriod": 3,
+          "engagementPeriodUnits": "Days",
+          "engagementWinnerMetric": "Clicks",
+          "holdbackPercentage": "0",
+          "aBnStartActivityKey": "ABNTEST-1"
+        },
+        "metaData": {
+          "shapeOverride": "dot",
+          "capsule": {
+            "id": "CAPSULE-1",
+            "startId": "ABNTEST-1",
+            "endId": "ABNTESTSTOP-1"
+          }
+        }
+      }
+    },
+    "STOWAIT": {
+      "description": "Einstein Send Time Optimization - Sends at optimal time for each contact",
+      "use_cases": [
+        "Maximize email opens",
+        "Improve click rates",
+        "Reduce unsubscribes"
+      ],
+      "example": {
+        "key": "STOWAIT-1",
+        "type": "STOWAIT",
+        "name": "Einstein STO - Random 24 Hours",
+        "outcomes": [
+          {
+            "key": "done",
+            "next": "EMAIL-1"
+          }
+        ],
+        "configurationArguments": {
+          "params": {
+            "slidingWindowHours": 24,
+            "enableRandomTime": true
+          },
+          "applicationExtensionKey": "f828061a-5f0e-46a9-975e-18c414192d17"
+        }
+      },
+      "configuration_options": {
+        "slidingWindowHours": "Time window for optimization (typically 24)",
+        "enableRandomTime": "Use randomization for new contacts without history"
+      }
+    },
+    "ENGAGEMENTDECISION": {
+      "description": "Split based on email engagement (open/click)",
+      "statsTypeIds": {
+        "1": "Opened",
+        "2": "Not Opened",
+        "3": "Clicked",
+        "4": "Not Clicked",
+        "5": "Bounced",
+        "6": "Not Bounced",
+        "7": "Unsubscribed",
+        "8": "Not Unsubscribed"
+      },
+      "example": {
+        "key": "ENGAGEMENT-1",
+        "type": "ENGAGEMENTDECISION",
+        "name": "Click Check",
+        "outcomes": [
+          {
+            "key": "branchResult-1",
+            "arguments": {
+              "when": true
+            },
+            "metaData": {
+              "label": "Yes"
+            }
+          },
+          {
+            "key": "branchResult-2",
+            "next": "RESEND-EMAIL",
+            "arguments": {
+              "when": false
+            },
+            "metaData": {
+              "label": "No"
+            }
+          }
+        ],
+        "configurationArguments": {
+          "refActivityCustomerKey": "EMAIL-1",
+          "statsTypeId": 3,
+          "engagementUrls": {
+            "urls": [
+              "https://www.salesforce.com/products/marketing-cloud/engagement/"
+            ]
+          }
+        }
+      }
+    },
+    "EMAILV2": {
+      "description": "Send email activity",
+      "example": {
+        "key": "EMAIL-1",
+        "type": "EMAILV2",
+        "name": "Send Welcome Email",
+        "outcomes": [
+          {
+            "key": "sent",
+            "next": "NEXT-ACTIVITY"
+          }
+        ],
+        "configurationArguments": {
+          "triggeredSend": {
+            "emailId": 123456,
+            "emailSubject": "Subject Line",
+            "dynamicEmailSubject": "Dynamic {{Field}} Subject",
+            "preHeader": "Preheader text",
+            "isTrackingClicks": true,
+            "isMultipart": true,
+            "isSendLogging": true,
+            "autoAddSubscribers": true,
+            "autoUpdateSubscribers": true
+          }
+        }
+      }
+    },
+    "WAIT": {
+      "description": "Wait for specified duration or until specific time",
+      "wait_types": [
+        "WAITBYDURATION",
+        "WAITUNTILSPECIFICTIME",
+        "WAITBYATTRIBUTE"
+      ],
+      "example": {
+        "key": "WAIT-1",
+        "type": "WAIT",
+        "name": "Wait 3 days",
+        "outcomes": [
+          {
+            "key": "done",
+            "next": "NEXT-ACTIVITY"
+          }
+        ],
+        "configurationArguments": {
+          "waitDuration": "3",
+          "waitUnit": "DAYS",
+          "timeZone": "W. Europe Standard Time",
+          "specifiedTime": "09:00"
+        }
+      },
+      "wait_units": ["HOURS", "DAYS", "WEEKS", "MONTHS"]
+    },
+    "RANDOMSPLIT": {
+      "description": "Random percentage split - differs from ABNTEST as no winner selection",
+      "example": {
+        "key": "RANDOM-1",
+        "type": "RANDOMSPLIT",
+        "outcomes": [
+          {
+            "key": "path1",
+            "next": "EMAIL-A",
+            "arguments": {
+              "percentage": 50
+            },
+            "metaData": {
+              "label": "50% - Version A"
+            }
+          },
+          {
+            "key": "path2",
+            "next": "EMAIL-B",
+            "arguments": {
+              "percentage": 50
+            },
+            "metaData": {
+              "label": "50% - Version B"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "journey_configuration": {
+    "entry_modes": {
+      "OnceAndDone": "Contact enters only once ever",
+      "SingleEntryAcrossAllVersions": "Contact can re-enter after exiting",
+      "MultipleEntries": "Contact can be in journey multiple times simultaneously",
+      "NotSet": "Default, not configured"
+    },
+    "trigger_types": {
+      "EmailAudience": {
+        "description": "Data Extension based entry",
+        "requires": "Data Extension linked to Contact Model for filters"
+      },
+      "AutomationAudience": {
+        "description": "Triggered by automation or API"
+      },
+      "CloudPagesSubmission": {
+        "description": "Form submission trigger"
+      },
+      "DateEvent": {
+        "description": "Anniversary/Date-based trigger"
+      },
+      "SalesforceObjectTrigger": {
+        "description": "Salesforce CRM object changes"
+      }
+    },
+    "filter_requirements": {
+      "critical": "Data Extension MUST be linked to Contact Model",
+      "groupToSetRelationshipId": "Links DE fields to Contact Model",
+      "field_reference_format": "DE_Name.FieldName for DE fields",
+      "contact_fields": "Contact.Default.FieldName for standard contact fields"
+    }
+  },
+  "complete_journey_examples": {
+    "path_optimizer_with_einstein": {
+      "name": "Path Optimizer with Einstein STO",
+      "description": "50/50 test where one path uses Einstein Send Time Optimization",
+      "key_learnings": [
+        "Path Optimizer creates a 'capsule' containing all test activities",
+        "Einstein STO delays sending to find optimal time per contact",
+        "Both paths must converge at ABNTESTSTOP",
+        "No holdback for recurring journeys"
+      ],
+      "journey": {
+        "activities": [
+          {
+            "key": "ABNTEST-1",
+            "type": "ABNTEST",
+            "outcomes": [
+              {
+                "key": "path1",
+                "next": "STOWAIT-1",
+                "arguments": {
+                  "percentage": 50
+                }
+              },
+              {
+                "key": "path2",
+                "next": "EMAIL-2",
+                "arguments": {
+                  "percentage": 50
+                }
+              }
+            ],
+            "configurationArguments": {
+              "holdBackPercentage": 0,
+              "winnerEvaluationType": "Engagement",
+              "engagementPeriod": 3,
+              "engagementPeriodUnits": "Days",
+              "engagementWinnerMetric": "Clicks"
+            }
+          },
+          {
+            "key": "STOWAIT-1",
+            "type": "STOWAIT",
+            "name": "Einstein STO",
+            "outcomes": [
+              {
+                "key": "done",
+                "next": "EMAIL-1"
+              }
+            ],
+            "configurationArguments": {
+              "params": {
+                "slidingWindowHours": 24,
+                "enableRandomTime": true
+              }
+            }
+          },
+          {
+            "key": "EMAIL-1",
+            "type": "EMAILV2",
+            "outcomes": [
+              {
+                "key": "sent",
+                "next": "ABNTESTSTOP-1"
+              }
+            ]
+          },
+          {
+            "key": "EMAIL-2",
+            "type": "EMAILV2",
+            "outcomes": [
+              {
+                "key": "sent",
+                "next": "ABNTESTSTOP-1"
+              }
+            ]
+          },
+          {
+            "key": "ABNTESTSTOP-1",
+            "type": "ABNTESTSTOP",
+            "configurationArguments": {
+              "aBnStartActivityKey": "ABNTEST-1"
+            }
+          }
+        ]
+      }
+    },
+    "complex_filtered_recurring": {
+      "name": "Daily Filtered Campaign with Multiple Conditions",
+      "description": "Runs daily, filters by age and gender, only processes new records",
+      "event_definition": {
+        "filterDefinitionTemplate": "<FilterDefinition><ConditionSet Operator=\"AND\" ConditionSetName=\"Individual Filter Grouping\"><Condition Key=\"LLM_OLE.Gender\" Operator=\"IsNotNull\"><Value><![CDATA[]]></Value></Condition><Condition Key=\"LLM_OLE.Age\" Operator=\"GreaterThan\"><Value><![CDATA[18]]></Value></Condition></ConditionSet></FilterDefinition>",
+        "arguments": {
+          "useHighWatermark": true,
+          "resetHighWatermark": true
+        }
+      }
+    }
+  },
+  "api_endpoints": {
+    "journeys": {
+      "list": "GET /interaction/v1/interactions",
+      "get": "GET /interaction/v1/interactions/{id}",
+      "create": "POST /interaction/v1/interactions",
+      "update": "PUT /interaction/v1/interactions/{id}",
+      "delete": "DELETE /interaction/v1/interactions/{id}",
+      "publish": "POST /interaction/v1/interactions/publishAsync/{id}",
+      "stop": "POST /interaction/v1/interactions/stop/{id}",
+      "pause": "POST /interaction/v1/interactions/pause/{id}",
+      "resume": "POST /interaction/v1/interactions/resume/{id}"
+    },
+    "event_definitions": {
+      "list": "GET /interaction/v1/eventDefinitions",
+      "get": "GET /interaction/v1/eventDefinitions/{id}",
+      "create": "POST /interaction/v1/eventDefinitions",
+      "update": "PUT /interaction/v1/eventDefinitions/{id}"
+    }
+  },
+  "troubleshooting": {
+    "common_issues": {
+      "filter_fields_not_available": {
+        "cause": "Data Extension not linked to Contact Model",
+        "solution": "Link DE to Contact Model in Data Designer or Contact Builder",
+        "indicator": "Missing groupToSetRelationshipId in filter metadata"
+      },
+      "holdback_not_available": {
+        "cause": "Trying to use holdback in recurring journey",
+        "solution": "Holdback only works with 'run once' journeys",
+        "rule": "For recurring journeys, holdBackPercentage must be 0"
+      },
+      "activities_not_connecting": {
+        "cause": "Missing 'next' property in outcomes",
+        "solution": "Ensure all outcomes have 'next' pointing to valid activity key"
+      },
+      "einstein_sto_not_working": {
+        "cause": "Missing applicationExtensionKey or wrong configuration",
+        "solution": "Ensure correct applicationExtensionKey and params configuration"
+      }
+    }
+  },
+  "best_practices": {
+    "naming_conventions": {
+      "journeys": "Use descriptive names with purpose and date/version",
+      "activities": "Use ACTION-NUMBER format (EMAIL-1, WAIT-1)",
+      "keys": "Use lowercase with hyphens or UUIDs"
+    },
+    "performance": {
+      "max_activities": 200,
+      "max_wait_duration": "365 days",
+      "batch_size": 1000,
+      "use_high_watermark": "Always true for recurring journeys with new entries only"
+    },
+    "testing": {
+      "always_test": true,
+      "test_audience_size": 10,
+      "test_all_paths": true,
+      "verify_de_linking": "Ensure DE is linked to Contact Model before using filters"
+    },
+    "filter_design": {
+      "use_cdata": "Always wrap values in CDATA tags",
+      "empty_value_for_null": "Use empty CDATA for IsNull/IsNotNull operators",
+      "escape_quotes": "Use &quot; for quotes in UiMetaData"
+    }
+  }
+}

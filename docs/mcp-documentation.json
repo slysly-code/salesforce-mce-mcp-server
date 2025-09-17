@@ -30,7 +30,7 @@
           "method": "GET",
           "path": "/asset/v1/content/assets",
           "query": {
-            "$filter": "assetType.name eq 'htmlemail'",
+            "$filter": "assetType.id in (207,208,209)"
             "page": 1,
             "pageSize": 50
           }

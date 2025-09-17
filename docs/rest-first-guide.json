@@ -25,5 +25,12 @@
         "recommendation": "USE SOAP"
       }
     }
+  },  
+  "asset_types": {
+    "emails": {"207": "templatebasedemail", "208": "htmlemail", "209": "textonlyemail"},
+    "images": {"23": "jpg", "28": "png"}
+  },
+  "filters": {
+    "all_emails": "assetType.id in (207,208,209)"
   }
 }

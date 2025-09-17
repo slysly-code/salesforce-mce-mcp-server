@@ -1,0 +1,29 @@
+{
+  "rest_first_rules": {
+    "always_rest": [
+      "Email operations",
+      "Journey Builder",
+      "Content Builder",
+      "Contact management",
+      "Simple data queries"
+    ],
+    "consider_soap": [
+      "Bulk imports > 1000 rows",
+      "Complex multi-table queries",
+      "Legacy tracking data",
+      "Automation triggers"
+    ],
+    "performance_benchmarks": {
+      "list_emails": {
+        "rest": "250ms",
+        "soap": "800ms",
+        "recommendation": "USE REST"
+      },
+      "bulk_import_10k": {
+        "rest": "15s (multiple calls)",
+        "soap": "5s (4 calls)",
+        "recommendation": "USE SOAP"
+      }
+    }
+  }
+}

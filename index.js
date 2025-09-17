@@ -31,6 +31,44 @@ docFiles.forEach(file => {
 });
 
 class MarketingCloudServer {
+	
+	determineOptimalRoute(operation, params = {}) {
+  // Operations that should ALWAYS use REST
+  const restPreferred = [
+    'list_emails', 'create_email', 'update_email',
+    'list_journeys', 'create_journey', 'publish_journey',
+    'get_contacts', 'create_contact',
+    'list_data_extensions'
+  ];
+  
+  // Operations better suited for SOAP
+  const soapPreferred = [
+    'bulk_data_import', // When rows > 1000
+    'complex_retrieve',  // Multi-table queries
+    'automation_trigger'
+  ];
+  
+  // Check data size for intelligent routing
+  if (operation.includes('data') && params.rowCount > 1000) {
+    console.error(`Routing to SOAP for bulk operation (${params.rowCount} rows)`);
+    return 'SOAP';
+  }
+  
+  if (restPreferred.includes(operation)) {
+    console.error(`Routing to REST for ${operation} (optimal performance)`);
+    return 'REST';
+  }
+  
+  if (soapPreferred.includes(operation)) {
+    console.error(`Routing to SOAP for ${operation} (better for this operation)`);
+    return 'SOAP';
+  }
+  
+  // Default to REST
+  console.error(`Defaulting to REST for ${operation}`);
+  return 'REST';
+}
+	
   constructor() {
     this.server = new Server(
       {

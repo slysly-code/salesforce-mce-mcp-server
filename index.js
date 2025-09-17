@@ -10,6 +10,22 @@ import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
+// Import email builder helpers (these files need to be created in /helpers directory)
+import { EmailBuilder } from './helpers/email-builder.js';
+import { Section, TwoColumnSection, ThreeColumnSection } from './helpers/email-sections.js';
+import { 
+  TextBlock, 
+  ImageBlock, 
+  ButtonBlock, 
+  PersonalizationBlock, 
+  EditorialBlock, 
+  DividerBlock, 
+  EmptyBlock 
+} from './helpers/content-blocks.js';
+import { EmailTemplates } from './helpers/email-templates.js';
+import { EmailNLPBuilder } from './helpers/email-nlp.js';
+import { ContentLibrary } from './helpers/content-library.js';
+
 const parseXml = promisify(parseString);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,8 +36,7 @@ const docFiles = ['mcp-documentation.json', 'journey-builder-examples.json', 'so
 
 docFiles.forEach(file => {
   try {
-    // Fix: Load from docs folder instead of root
-    const docPath = join(__dirname, 'docs', file); // Add 'docs' to path
+    const filePath = join(__dirname, 'docs', file); // Fixed: Added 'docs' to path
     const content = JSON.parse(readFileSync(filePath, 'utf8'));
     const key = file.replace('.json', '').replace(/-/g, '_');
     documentation[key] = content;
@@ -32,53 +47,44 @@ docFiles.forEach(file => {
 });
 
 class MarketingCloudServer {
-	
-	determineOptimalRoute(operation, params = {}) {
-  // Operations that should ALWAYS use REST
-  const restPreferred = [
-    'list_emails', 'create_email', 'update_email',
-    'list_journeys', 'create_journey', 'publish_journey',
-    'get_contacts', 'create_contact',
-    'list_data_extensions'
-  ];
   
-  getEmailFilter(type = 'all') {
-  const filters = {
-    'all': 'assetType.id in (207,208,209)',
-    'html': 'assetType.name eq \'htmlemail\'',
-    'template': 'assetType.name eq \'templatebasedemail\''
-  };
-  return filters[type] || filters['all'];
-}
-  
-  // Operations better suited for SOAP
-  const soapPreferred = [
-    'bulk_data_import', // When rows > 1000
-    'complex_retrieve',  // Multi-table queries
-    'automation_trigger'
-  ];
-  
-  // Check data size for intelligent routing
-  if (operation.includes('data') && params.rowCount > 1000) {
-    console.error(`Routing to SOAP for bulk operation (${params.rowCount} rows)`);
-    return 'SOAP';
-  }
-  
-  if (restPreferred.includes(operation)) {
-    console.error(`Routing to REST for ${operation} (optimal performance)`);
+  determineOptimalRoute(operation, params = {}) {
+    // Operations that should ALWAYS use REST
+    const restPreferred = [
+      'list_emails', 'create_email', 'update_email',
+      'list_journeys', 'create_journey', 'publish_journey',
+      'get_contacts', 'create_contact',
+      'list_data_extensions'
+    ];
+    
+    // Operations better suited for SOAP
+    const soapPreferred = [
+      'bulk_data_import', // When rows > 1000
+      'complex_retrieve',  // Multi-table queries
+      'automation_trigger'
+    ];
+    
+    // Check data size for intelligent routing
+    if (operation.includes('data') && params.rowCount > 1000) {
+      console.error(`Routing to SOAP for bulk operation (${params.rowCount} rows)`);
+      return 'SOAP';
+    }
+    
+    if (restPreferred.includes(operation)) {
+      console.error(`Routing to REST for ${operation} (optimal performance)`);
+      return 'REST';
+    }
+    
+    if (soapPreferred.includes(operation)) {
+      console.error(`Routing to SOAP for ${operation} (better for this operation)`);
+      return 'SOAP';
+    }
+    
+    // Default to REST
+    console.error(`Defaulting to REST for ${operation}`);
     return 'REST';
   }
   
-  if (soapPreferred.includes(operation)) {
-    console.error(`Routing to SOAP for ${operation} (better for this operation)`);
-    return 'SOAP';
-  }
-  
-  // Default to REST
-  console.error(`Defaulting to REST for ${operation}`);
-  return 'REST';
-}
-	
   constructor() {
     this.server = new Server(
       {
@@ -195,6 +201,92 @@ class MarketingCloudServer {
             properties: {},
           },
         },
+        {
+          name: 'mce_v1_build_email',
+          description: 'Build complex emails with sections, layouts, and content blocks',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              name: { 
+                type: 'string', 
+                description: 'Email name (required)' 
+              },
+              subject: { 
+                type: 'string', 
+                description: 'Email subject line (required)' 
+              },
+              template: { 
+                type: 'string', 
+                enum: ['custom', 'welcome', 'newsletter', 'promotional'],
+                description: 'Use a predefined template or build custom'
+              },
+              folderId: {
+                type: 'number',
+                description: 'Marketing Cloud folder/category ID'
+              },
+              preheader: {
+                type: 'string',
+                description: 'Email preheader text'
+              },
+              sections: {
+                type: 'array',
+                description: 'Array of email sections for custom builds',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: { 
+                      type: 'string',
+                      enum: ['standard', 'two-column', 'three-column'],
+                      description: 'Section layout type'
+                    },
+                    columns: { 
+                      type: 'number',
+                      description: 'Number of columns (1-3)'
+                    },
+                    backgroundColor: {
+                      type: 'string',
+                      description: 'Section background color'
+                    },
+                    padding: {
+                      type: 'string',
+                      description: 'Section padding'
+                    },
+                    content: { 
+                      type: 'array',
+                      description: 'Content blocks for this section',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          blockType: {
+                            type: 'string',
+                            enum: ['text', 'image', 'button', 'personalization', 'editorial', 'divider', 'social', 'empty']
+                          },
+                          data: {
+                            type: 'object',
+                            description: 'Block-specific data'
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              nlpCommand: {
+                type: 'string',
+                description: 'Natural language command to build email (alternative to sections)'
+              },
+              discountPercent: {
+                type: 'number',
+                description: 'Discount percentage for promotional template'
+              },
+              promoCode: {
+                type: 'string',
+                description: 'Promo code for promotional template'
+              }
+            },
+            required: ['name', 'subject']
+          }
+        }
       ],
     }));
 
@@ -228,6 +320,9 @@ class MarketingCloudServer {
                 },
               ],
             };
+
+          case 'mce_v1_build_email':
+            return await this.handleEmailBuild(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -512,6 +607,231 @@ class MarketingCloudServer {
     }
   }
 
+  async handleEmailBuild(args) {
+    try {
+      console.error('Building email with args:', JSON.stringify(args, null, 2));
+      
+      const builder = new EmailBuilder(this);
+      
+      // Option 1: Use a predefined template
+      if (args.template && args.template !== 'custom') {
+        console.error(`Using ${args.template} template`);
+        
+        let templateBuilder;
+        switch(args.template) {
+          case 'welcome':
+            templateBuilder = EmailTemplates.getWelcomeTemplate();
+            break;
+          case 'newsletter':
+            templateBuilder = EmailTemplates.getNewsletterTemplate();
+            break;
+          case 'promotional':
+            templateBuilder = EmailTemplates.getPromoTemplate(
+              args.discountPercent || 20,
+              args.promoCode || 'SAVE20'
+            );
+            break;
+          default:
+            throw new Error(`Unknown template: ${args.template}`);
+        }
+        
+        // Override template name/subject if provided
+        templateBuilder.metadata.name = args.name;
+        templateBuilder.metadata.subject = args.subject;
+        if (args.folderId) {
+          templateBuilder.metadata.categoryId = args.folderId;
+        }
+        
+        const result = await templateBuilder.build();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // Option 2: Build from natural language command
+      if (args.nlpCommand) {
+        console.error('Processing NLP command:', args.nlpCommand);
+        
+        const nlpBuilder = new EmailNLPBuilder(builder);
+        
+        // Initialize the email
+        builder.create(args.name, args.subject, {
+          folderId: args.folderId,
+          preheader: args.preheader
+        });
+        
+        // Process the NLP command (split by periods for multiple commands)
+        const commands = args.nlpCommand.split('. ').filter(cmd => cmd.trim());
+        for (const command of commands) {
+          const result = await nlpBuilder.processCommand(command.trim());
+          console.error('NLP command processed:', command, '→', result);
+          if (result.error) {
+            console.error('NLP error:', result.error);
+          }
+        }
+        
+        const result = await builder.build();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // Option 3: Build from structured sections
+      if (args.sections && args.sections.length > 0) {
+        console.error('Building from sections array');
+        
+        builder.create(args.name, args.subject, {
+          folderId: args.folderId,
+          preheader: args.preheader
+        });
+        
+        for (const sectionData of args.sections) {
+          const section = this.createSectionFromData(sectionData);
+          builder.addSection(section);
+        }
+        
+        const result = await builder.build();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2)
+            }
+          ]
+        };
+      }
+      
+      // Default: Create basic email with common structure
+      console.error('Creating basic email structure');
+      
+      builder.create(args.name, args.subject, {
+        folderId: args.folderId,
+        preheader: args.preheader
+      });
+      
+      // Add basic structure
+      const commonBlocks = ContentLibrary.getCommonBlocks();
+      
+      // Header
+      builder.addSection(
+        new Section().addContent(commonBlocks.header.logo)
+      );
+      
+      // Main content area
+      builder.addSection(
+        new Section().addContent(
+          new TextBlock('<h2>Main Content</h2><p>Your email content goes here.</p>')
+        )
+      );
+      
+      // Footer
+      builder.addSection(
+        new Section().addContent(commonBlocks.footer.imprint)
+      );
+      
+      const result = await builder.build();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }
+        ]
+      };
+      
+    } catch (error) {
+      console.error('Email build error:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error building email: ${error.message}\n\nStack: ${error.stack}`
+          }
+        ]
+      };
+    }
+  }
+
+  // Helper method to create sections from data
+  createSectionFromData(sectionData) {
+    const { type, columns, content, backgroundColor, padding } = sectionData;
+    
+    // Create content blocks
+    const contentBlocks = (content || []).map(blockData => {
+      return this.createContentBlock(blockData);
+    });
+    
+    // Create section based on type
+    if (type === 'two-column' || columns === 2) {
+      return new TwoColumnSection(
+        contentBlocks[0] || new EmptyBlock(),
+        contentBlocks[1] || new EmptyBlock(),
+        { backgroundColor, padding }
+      );
+    } else if (type === 'three-column' || columns === 3) {
+      return new ThreeColumnSection(
+        contentBlocks[0] || new EmptyBlock(),
+        contentBlocks[1] || new EmptyBlock(),
+        contentBlocks[2] || new EmptyBlock(),
+        { backgroundColor, padding }
+      );
+    } else {
+      const section = new Section({ backgroundColor, padding });
+      contentBlocks.forEach(block => section.addContent(block));
+      return section;
+    }
+  }
+
+  // Helper method to create content blocks
+  createContentBlock(blockData) {
+    const { blockType, data = {} } = blockData;
+    
+    switch(blockType) {
+      case 'text':
+        return new TextBlock(data.content || '', data.options || {});
+        
+      case 'image':
+        return new ImageBlock(data.source || '', data.options || {});
+        
+      case 'button':
+        return new ButtonBlock(
+          data.text || 'Click Here',
+          data.link || '#',
+          data.options || {}
+        );
+        
+      case 'personalization':
+        return new PersonalizationBlock(
+          data.field || 'FirstName',
+          data.fallback || '',
+          data.options || {}
+        );
+        
+      case 'editorial':
+        return new EditorialBlock(data.placeholder || 'Content goes here');
+        
+      case 'divider':
+        return new DividerBlock(data.options || {});
+        
+      case 'social':
+        return new SocialBlock(data.networks || [], data.options || {});
+        
+      case 'empty':
+      default:
+        return new EmptyBlock();
+    }
+  }
+
   buildSoapEnvelope(args, accessToken) {
     const subdomain = process.env.MCE_SUBDOMAIN;
     
@@ -542,13 +862,14 @@ class MarketingCloudServer {
 </s:Envelope>`;
   }
 
- buildCreateBody(args) {
-  if (args.objectType === 'DataExtension') {
-    const de = args.objects && args.objects[0] || {};
-    let fieldsXml = '';
-    
-    if (de.fields && de.fields.length > 0) {
-      fieldsXml = de.fields.map(field => `
+  buildCreateBody(args) {
+    if (args.objectType === 'DataExtension') {
+      // Special handling for DataExtension creation
+      const de = args.objects && args.objects[0] || {};
+      let fieldsXml = '';
+      
+      if (de.fields && de.fields.length > 0) {
+        fieldsXml = de.fields.map(field => `
       <Fields>
         <Field>
           <Name>${field.name}</Name>
@@ -558,9 +879,9 @@ class MarketingCloudServer {
           ${field.isRequired ? `<IsRequired>true</IsRequired>` : ''}
         </Field>
       </Fields>`).join('');
-    }
+      }
 
-    return `
+      return `
     <CreateRequest xmlns="http://exacttarget.com/wsdl/partnerAPI">
       <Objects xsi:type="DataExtension">
         <CustomerKey>${de.customerKey || de.name}</CustomerKey>
@@ -578,7 +899,7 @@ class MarketingCloudServer {
         ${fieldsXml}
       </Objects>
     </CreateRequest>`;
-  }
+    }
     
     // Generic create for other object types
     const obj = args.objects && args.objects[0] || {};
@@ -659,8 +980,9 @@ class MarketingCloudServer {
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
-    console.error('Marketing Cloud Engagement MCP server running v1.0.0');
+    console.error('Marketing Cloud Engagement MCP server running v1.1.0');
     console.error('Documentation files loaded:', Object.keys(documentation).join(', '));
+    console.error('Email builder integration active');
   }
 }
 
